@@ -1,0 +1,16 @@
+{
+  "jupyter.lab.setting-icon-class": "jp-FileIcon",
+  "jupyter.lab.setting-icon-label": "Github Links",
+  "title": "Jupyter Lab Gitpuller",
+  "description": "Settings for Gitpuller",
+  "properties": {
+    "link": {
+      "type": "String",
+      "title": "Gitpuller Link",
+      "description": "The Link to pull from",
+      "default": ""
+    }
+  },
+  "additionalProperties": false,
+  "type": "object"
+}

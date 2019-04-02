@@ -19,20 +19,33 @@ import{
   JSONExt
 } from '@phosphor/coreutils';
 
-//import {
-  //Message
-//} from '@phosphor/messaging';
+import {
+  Message
+} from '@phosphor/messaging';
 
 import {
   Widget,
   
 } from '@phosphor/widgets';
 
+import {IMainMenu} from '@jupyterlab/mainmenu';
+
+import { ISettingRegistry} from '@jupyterlab/coreutils';
+
+const pluginId = '@jupyterlab/jupyterlab-gitpuller:extension';
+
+namespace CommandIDs{
+  export const linkName = 'jupyterlab-gitpuller:savelink';
+};
+
 //import {each} from '@phosphor/algorithm';
 
 //import {TabBar, Widget} from '@phosphor/widgets';
 
 import '../style/index.css';
+
+
+
 
 
 class gitPullerWidget extends Widget {
@@ -60,14 +73,17 @@ class gitPullerWidget extends Widget {
     this.gitpull = document.createElement('div');
     
     
+    
 
     this.node.appendChild(this.gitpull);
 
     //have it send you to a link with the form entered 
-    this.gitpull.insertAdjacentHTML('afterend', 
-    '<form >Link:<br><input id="savelink" type="text" name="link" value="some github link"><br><input onClick=saveLink() type="submit" value="Submit"><br></form>');
-    this.gitpull.insertAdjacentHTML('afterend', '<button onClick=refresh()>Refresh with current link</button>');
-
+   // this.gitpull.insertAdjacentHTML('afterend', 
+    //'<form >Link:<br><input id="savelink" type="text" name="link" value="some github link"><br><input onClick=saveLink() type="submit" value="Submit"><br></form>');
+    this.gitpull.insertAdjacentHTML('afterend', '<input id="savelink" type="text"><br /><br />');
+    (<HTMLButtonElement>this.gitpull.insertAdjacentHTML('afterend', '<button>Pull</button>'));
+    this.gitpull.insertAdjacentHTML('afterend', '<br><button onClick=refresh()>Refresh with current link</button>');
+   
     //gitpull.insertAdjacentHTML('afterend', '<iframe class="git" src="https://jupyterhub.github.io/nbgitpuller/link">');
      
     //this.link equals the result of this 
@@ -84,26 +100,29 @@ class gitPullerWidget extends Widget {
 
     //do gitpuller 
 
+  
+
    }
 
    refresh(){
      //do gitpuller
    }
 
-   /*onUpdateRequest(msg: Message): void {
+   onUpdateRequest(msg: Message): void {
     fetch('https://egszlpbmle.execute-api.us-east-1.amazonaws.com/prod').then(response => {
       return response.json();
     }).then(data => {
       this.link = data.link;
       
+      
     });
-   } */
+   } 
 
    
 
 }
 
-function activate(app: JupyterLab, palette: ICommandPalette, restorer: ILayoutRestorer){
+function activate(app: JupyterLab, palette: ICommandPalette, restorer: ILayoutRestorer, settingRegistry: ISettingRegistry, menu: IMainMenu){
   console.log("Jupyterlab extension jupyterlab_gitpuller is activated");
 
   //const tabs = new TabBar<Widget>({ orientation: 'vertical' });
@@ -150,6 +169,39 @@ function activate(app: JupyterLab, palette: ICommandPalette, restorer: ILayoutRe
     }
   });
 
+  //const registry = app.docRegistry;
+  //const when = app.restored.then(() => void 0);
+  
+  const onSettingsUpdated = (settings: ISettingRegistry.ISettings) => {
+    const link = settings.get('link').composite as String | null;
+    widget.link = link;
+    //app.commands.notifyCommandChanged(CommandIDs.)
+  }
+
+  //or use literal "extension"
+  Promise.all([settingRegistry.load(pluginId), app.restored])
+  .then(([settings]) => {
+    settings.changed.connect(onSettingsUpdated);
+    onSettingsUpdated(settings);
+  })
+  .catch((reason: Error) => {
+    console.error(reason.message);
+  });
+  menu.settingsMenu.addGroup([{ command: CommandIDs.linkName}], 5);
+  
+  app.commands.addCommand(CommandIDs.linkName, {
+    label: 'Autosave Documents',
+    
+    execute: () => {
+      const value = !widget.link;
+      const key = 'link';
+      return settingRegistry
+        .set(pluginId, key, value)
+        .catch((reason: Error) => {
+          console.error(`Failed to set ${pluginId}:${key} - ${reason.message}`);
+        });
+    }
+  });
   // Add the command to the palette.
   palette.addItem({command, category: 'GitHub'});
 
@@ -162,13 +214,14 @@ function activate(app: JupyterLab, palette: ICommandPalette, restorer: ILayoutRe
 }
 
 
+
 /**
  * Initialization data for the jupyterlab_gitpuller extension.
  */
 const extension: JupyterLabPlugin<void> = {
   id: 'jupyterlab-gitpuller',
   autoStart: true,
-  requires: [ICommandPalette, ILayoutRestorer],
+  requires: [ICommandPalette, ILayoutRestorer, ISettingRegistry, IMainMenu],
   activate: activate
 
 };
